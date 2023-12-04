@@ -1403,6 +1403,20 @@ namespace webview
     };
   };
 
+  void SetWindowFocus(HWND hWnd)
+  {
+      SetForegroundWindow(hWnd);
+      SetFocus(hWnd);
+      BringWindowToTop(hWnd);
+  }
+
+BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
+{
+    // Set the child window to be not always on top
+    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    return TRUE;
+}
+
   class win32_edge_engine
   {
   public:
@@ -1427,9 +1441,28 @@ namespace webview
                       {
                         auto w = (win32_edge_engine *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
                         static HMENU menuRef;
+                        HWND lHwnd = FindWindowA("Shell_TrayWnd", NULL);
                         switch (msg)
                         {
+                        case WM_ACTIVATEAPP:
+                          if (wp) // wParam is nonzero when activated, zero when deactivated
+                          {
+                            HWND hwndOther = (HWND)lp;
+                            SetWindowPos(hwndOther, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                          }
+                          
+                          SetWindowFocus(hwnd);
+                          SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE  | SWP_NOZORDER);
+                          break;
+                        case WM_TIMER:
+                          if (wp == 100)
+                            {
+                              SetWindowFocus(hwnd);
+                              SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+                            }
                         case WM_CREATE:
+                          // SendMessage(lHwnd, WM_COMMAND, 419, 0); // Minimize all windows
+                          SetTimer(hwnd, 100, 20, NULL);
                           SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 255, LWA_ALPHA);
                           break;
                         case WM_SIZE:
