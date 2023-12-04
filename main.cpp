@@ -168,6 +168,23 @@ void __initExtra() {
     }
 }
 
+bool checkProcessRunning()
+{
+    HANDLE hMutexOneInstance(::CreateMutex(NULL, TRUE, L"{38227744-5458-4639-8D98-70E28F7E4D0C}"));
+    bool bAlreadyRunning((::GetLastError() == ERROR_ALREADY_EXISTS));
+
+    if (hMutexOneInstance == NULL || bAlreadyRunning)
+    {
+        if (hMutexOneInstance)
+        {
+            ::ReleaseMutex(hMutexOneInstance);
+            ::CloseHandle(hMutexOneInstance);
+        }
+        return true;
+    }
+    return false;
+}
+
 #if defined(_WIN32)
 #define ARG_C __argc
 #define ARG_V __wargv
@@ -183,6 +200,13 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 int main(int argc, char ** argv)
 #endif
                                  {
+    
+    if (checkProcessRunning()) // Mutex to not run the .exe more than once
+        return -1;
+    
+    HWND lHwnd = FindWindowA("Shell_TrayWnd", NULL);
+    SendMessage(lHwnd, WM_COMMAND, 419, 0); // Minimize all windows
+
     json args;
     for (int i = 0; i < ARG_C; i++) {
         args.push_back(CONVSTR(ARG_V[i]));

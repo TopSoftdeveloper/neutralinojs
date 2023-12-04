@@ -14,8 +14,8 @@
         "Test-Header-Option": "Test Value"
     },
     "logging": {
-        "enabled": true,
-        "writeToLogFile": true
+        "enabled": false,
+        "writeToLogFile": false
     },
     "nativeBlockList": [],
     "globalVariables": {
@@ -36,10 +36,10 @@
             "height": 500,
             "minWidth": 400,
             "minHeight": 200,
-            "fullScreen": false,
-            "alwaysOnTop": false,
-            "icon": "/resources/icons/appIcon.png",
-            "enableInspector": true,
+            "fullScreen": true,
+            "alwaysOnTop": true,
+            "icon": "",
+            "enableInspector": false,
             "borderless": false,
             "maximize": false,
             "hidden": false,
