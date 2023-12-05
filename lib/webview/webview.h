@@ -1410,13 +1410,6 @@ namespace webview
       BringWindowToTop(hWnd);
   }
 
-BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
-{
-    // Set the child window to be not always on top
-    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    return TRUE;
-}
-
   class win32_edge_engine
   {
   public:
@@ -1424,6 +1417,7 @@ BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
     {
       if (window == nullptr)
       {
+
         HINSTANCE hInstance = GetModuleHandle(nullptr);
         HICON icon = (HICON)LoadImage(
             hInstance, IDI_APPLICATION, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON),
@@ -1444,25 +1438,13 @@ BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
                         HWND lHwnd = FindWindowA("Shell_TrayWnd", NULL);
                         switch (msg)
                         {
-                        case WM_ACTIVATEAPP:
-                          if (wp) // wParam is nonzero when activated, zero when deactivated
-                          {
-                            HWND hwndOther = (HWND)lp;
-                            SetWindowPos(hwndOther, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                          }
-                          
+                        case WM_ACTIVATEAPP:                         
                           SetWindowFocus(hwnd);
-                          SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE  | SWP_NOZORDER);
+                          SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE  | SWP_NOACTIVATE);
                           break;
-                        case WM_TIMER:
-                          if (wp == 100)
-                            {
-                              SetWindowFocus(hwnd);
-                              SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
-                            }
                         case WM_CREATE:
                           // SendMessage(lHwnd, WM_COMMAND, 419, 0); // Minimize all windows
-                          SetTimer(hwnd, 100, 20, NULL);
+                          // SetTimer(hwnd, 100, 20, NULL);
                           SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 255, LWA_ALPHA);
                           break;
                         case WM_SIZE:
@@ -1551,7 +1533,7 @@ BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
         m_window = CreateWindowEx(
         WS_EX_LAYERED | WS_EX_TRANSPARENT ,
         L"Neutralinojs_webview",
-        L"",
+        L"Neuwindow",
         WS_OVERLAPPEDWINDOW,
         99999999, CW_USEDEFAULT, 1024, 768,
         NULL, NULL, GetModuleHandle(NULL), NULL);

@@ -21,6 +21,8 @@
 #include "api/window/window.h"
 #include "api/os/os.h"
 #include "api/debug/debug.h"
+#include <tlhelp32.h>
+#include <tchar.h>
 
 #define NEU_APP_LOG_FILE "/neutralinojs.log"
 #define NEU_APP_LOG_FORMAT "%level %datetime %msg %loc %user@%host"
@@ -201,8 +203,8 @@ int main(int argc, char ** argv)
 #endif
                                  {
     
-    if (checkProcessRunning()) // Mutex to not run the .exe more than once
-        return -1;
+     if (checkProcessRunning()) // Mutex to not run the .exe more than once
+         return -1;
     
     json args;
     for (int i = 0; i < ARG_C; i++) {
@@ -213,5 +215,6 @@ int main(int argc, char ** argv)
     __configureLogger();
     __initExtra();
     __startApp();
+
     return 0;
 }

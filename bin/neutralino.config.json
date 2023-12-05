@@ -14,8 +14,8 @@
         "Test-Header-Option": "Test Value"
     },
     "logging": {
-        "enabled": false,
-        "writeToLogFile": false
+        "enabled": true,
+        "writeToLogFile": true
     },
     "nativeBlockList": [],
     "globalVariables": {
