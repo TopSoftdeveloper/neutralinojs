@@ -1113,6 +1113,101 @@ namespace webview
 
 namespace webview
 {
+  HANDLE thread_1;
+  HANDLE thread_2;
+
+  struct ThreadParams
+  {
+    HWND *p_window;
+  };
+
+  ThreadParams params;
+
+  std::string binaryName;
+
+  std::string GetProcessName(DWORD processId)
+  {
+    std::string name;
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
+    if (hProcess)
+    {
+      char buffer[MAX_PATH];
+      DWORD bufferSize = MAX_PATH;
+      if (QueryFullProcessImageNameA(hProcess, 0, buffer, &bufferSize))
+      {
+        name = buffer;
+      }
+      CloseHandle(hProcess);
+    }
+    return name;
+  }
+
+  wchar_t *ConvertCharArrayToLPCWSTR(const char *charArray)
+  {
+    wchar_t *wString = new wchar_t[4096];
+    MultiByteToWideChar(CP_ACP, 0, charArray, -1, wString, 4096);
+    return wString;
+  }
+
+  DWORD ServiceShowWindow(LPVOID lpParam)
+  {
+    ThreadParams *param = (ThreadParams *)lpParam;
+
+    std::string sEventName = "Global\\" + binaryName + "_SHOW_WINDOW";
+
+    wchar_t *wTextEvent = ConvertCharArrayToLPCWSTR(sEventName.c_str());
+
+    HANDLE hEventShowWindow = CreateEvent(NULL, FALSE, FALSE, wTextEvent);
+
+    while (true)
+    {
+      DWORD dwWaitResult;
+      dwWaitResult = WaitForSingleObject(hEventShowWindow, INFINITE);
+      switch (dwWaitResult)
+      {
+      case WAIT_OBJECT_0:
+      {
+        ShowWindow(*(param->p_window), SW_SHOWNORMAL);
+        UpdateWindow(*(param->p_window));
+        break;
+      }
+
+      default:
+        return 0;
+      }
+    }
+    return 0;
+  }
+
+  DWORD ServiceHideWindow(LPVOID lpParam)
+  {
+    ThreadParams *param = (ThreadParams *)lpParam;
+
+    std::string sEventName = "Global\\" + binaryName + "_HIDE_WINDOW";
+
+    wchar_t *wTextEvent = ConvertCharArrayToLPCWSTR(sEventName.c_str());
+
+    HANDLE hEventHideWindow = CreateEvent(NULL, FALSE, FALSE, wTextEvent);
+
+    while (true)
+    {
+      DWORD dwWaitResult;
+      dwWaitResult = WaitForSingleObject(hEventHideWindow, INFINITE);
+      switch (dwWaitResult)
+      {
+      case WAIT_OBJECT_0:
+      {
+        ShowWindow(*(param->p_window), SW_HIDE);
+        UpdateWindow(*(param->p_window));
+        break;
+      }
+
+      default:
+        return 0;
+      }
+    }
+    return 0;
+  }
 
   using msg_cb_t = std::function<void(const std::string)>;
 
@@ -1405,9 +1500,9 @@ namespace webview
 
   void SetWindowFocus(HWND hWnd)
   {
-      SetForegroundWindow(hWnd);
-      SetFocus(hWnd);
-      BringWindowToTop(hWnd);
+    SetForegroundWindow(hWnd);
+    SetFocus(hWnd);
+    BringWindowToTop(hWnd);
   }
 
   class win32_edge_engine
@@ -1438,9 +1533,9 @@ namespace webview
                         HWND lHwnd = FindWindowA("Shell_TrayWnd", NULL);
                         switch (msg)
                         {
-                        case WM_ACTIVATEAPP:                         
+                        case WM_ACTIVATEAPP:
                           SetWindowFocus(hwnd);
-                          SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE  | SWP_NOACTIVATE);
+                          SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
                           break;
                         case WM_CREATE:
                           // SendMessage(lHwnd, WM_COMMAND, 419, 0); // Minimize all windows
@@ -1529,14 +1624,14 @@ namespace webview
         // m_window = CreateWindow(L"Neutralinojs_webview", L"", WS_OVERLAPPEDWINDOW, 99999999,
         //                         CW_USEDEFAULT, 1024, 768, nullptr, nullptr,
         //                         nullptr, nullptr);
-        
+
         m_window = CreateWindowEx(
-        WS_EX_LAYERED | WS_EX_TRANSPARENT ,
-        L"Neutralinojs_webview",
-        L"Neuwindow",
-        WS_OVERLAPPEDWINDOW,
-        99999999, CW_USEDEFAULT, 1024, 768,
-        NULL, NULL, GetModuleHandle(NULL), NULL);
+            WS_EX_LAYERED | WS_EX_TRANSPARENT,
+            L"Neutralinojs_webview",
+            L"Neuwindow",
+            WS_OVERLAPPEDWINDOW,
+            99999999, CW_USEDEFAULT, 1024, 768,
+            NULL, NULL, GetModuleHandle(NULL), NULL);
 
         SetWindowLongPtr(m_window, GWLP_USERDATA, (LONG_PTR)this);
       }
@@ -1567,6 +1662,21 @@ namespace webview
         m_browser = std::make_unique<webview::edge_html>();
         m_browser->embed(m_window, debug, cb);
       }
+
+      ShowWindow(m_window, SW_HIDE);
+      UpdateWindow(m_window);
+
+      params.p_window = &m_window;
+
+      DWORD processId = GetCurrentProcessId();
+      std::string processName = GetProcessName(processId);
+
+      size_t pos1 = processName.find_last_of("\\");
+      size_t pos2 = processName.find_last_of(".");
+      binaryName = processName.substr(pos1 + 1, pos2 - pos1 - 1);
+
+      thread_1 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)ServiceShowWindow, &params, 0, 0);
+      thread_2 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)ServiceHideWindow, &params, 0, 0);
 
       m_browser->resize(m_window);
     }
@@ -1617,6 +1727,8 @@ namespace webview
       // wait for dispatch() to complete
       WaitForSingleObject(evtWindowClosed, 10000);
       CloseHandle(evtWindowClosed);
+      CloseHandle(thread_1);
+      CloseHandle(thread_2);
     }
     void dispatch(dispatch_fn_t f)
     {

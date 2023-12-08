@@ -35,114 +35,132 @@ using json = nlohmann::json;
 
 string navigationUrl = "";
 
-void __wait() {
-    while(true) {
+void __wait()
+{
+    while (true)
+    {
         this_thread::sleep_for(20000ms);
     }
 }
 
-void __startApp() {
+void __startApp()
+{
     json options = settings::getConfig();
-    switch(settings::getMode()) {
-        case settings::AppModeBrowser:
-            os::open(navigationUrl);
-            __wait();
-            break;
-        case settings::AppModeWindow: {
-            json windowOptions = options["modes"]["window"];
-            windowOptions["url"] = navigationUrl;
-            window::controllers::init(windowOptions);
-            }
-            break;
-        case settings::AppModeCloud:
-            if(neuserver::isInitialized()) {
-                debug::log(debug::LogTypeInfo, options["applicationId"].get<string>() +
-                        " is available at " + navigationUrl);
-            }
-            __wait();
-            break;
-        case settings::AppModeChrome: {
-            json chromeOptions = options["modes"]["chrome"];
-            chromeOptions["url"] = navigationUrl;
-            chrome::init(chromeOptions);
-            __wait();
-            }
-            break;
+    switch (settings::getMode())
+    {
+    case settings::AppModeBrowser:
+        os::open(navigationUrl);
+        __wait();
+        break;
+    case settings::AppModeWindow:
+    {
+        json windowOptions = options["modes"]["window"];
+        windowOptions["url"] = navigationUrl;
+        window::controllers::init(windowOptions);
+    }
+    break;
+    case settings::AppModeCloud:
+        if (neuserver::isInitialized())
+        {
+            debug::log(debug::LogTypeInfo, options["applicationId"].get<string>() +
+                                               " is available at " + navigationUrl);
+        }
+        __wait();
+        break;
+    case settings::AppModeChrome:
+    {
+        json chromeOptions = options["modes"]["chrome"];
+        chromeOptions["url"] = navigationUrl;
+        chrome::init(chromeOptions);
+        __wait();
+    }
+    break;
     }
 }
 
-void __configureLogger() {
+void __configureLogger()
+{
     bool enableLogging = true;
     bool enableLogFile = true;
 
     json logging = settings::getOptionForCurrentMode("logging");
-    if(!logging["enabled"].is_null()) {
+    if (!logging["enabled"].is_null())
+    {
         enableLogging = logging["enabled"].get<bool>();
     }
-    if(!logging["writeToLogFile"].is_null()) {
+    if (!logging["writeToLogFile"].is_null())
+    {
         enableLogFile = logging["writeToLogFile"].get<bool>();
     }
 
     el::Configurations defaultConf;
     defaultConf.setToDefault();
     defaultConf.setGlobally(
-            el::ConfigurationType::Format, NEU_APP_LOG_FORMAT);
+        el::ConfigurationType::Format, NEU_APP_LOG_FORMAT);
 
-    if(enableLogFile) {
+    if (enableLogFile)
+    {
         defaultConf.setGlobally(
-                el::ConfigurationType::Filename, settings::joinAppPath(NEU_APP_LOG_FILE));
+            el::ConfigurationType::Filename, settings::joinAppPath(NEU_APP_LOG_FILE));
     }
     defaultConf.setGlobally(
-            el::ConfigurationType::ToFile, enableLogFile ? "true" : "false");
+        el::ConfigurationType::ToFile, enableLogFile ? "true" : "false");
 
     defaultConf.setGlobally(
-            el::ConfigurationType::Enabled, enableLogging ? "true" : "false");
+        el::ConfigurationType::Enabled, enableLogging ? "true" : "false");
     el::Loggers::reconfigureLogger("default", defaultConf);
 }
 
-void __startServerAsync() {
+void __startServerAsync()
+{
     navigationUrl = settings::getOptionForCurrentMode("url").get<string>();
     json jEnableServer = settings::getOptionForCurrentMode("enableServer");
 
-    if(!jEnableServer.is_null() && jEnableServer.get<bool>()) {
-        try {
+    if (!jEnableServer.is_null() && jEnableServer.get<bool>())
+    {
+        try
+        {
             navigationUrl = neuserver::init();
         }
-        catch(websocketpp::exception &e) {
+        catch (websocketpp::exception &e)
+        {
             json jPort = settings::getOptionForCurrentMode("port");
             string errorMsg = "Neutralinojs can't initialize the application server";
-            if(!jPort.is_null()) {
+            if (!jPort.is_null())
+            {
                 errorMsg += " on port: " + to_string(jPort.get<int>());
             }
             pfd::message("Unable to start server",
-                errorMsg,
-                pfd::choice::ok,
-                pfd::icon::error);
+                         errorMsg,
+                         pfd::choice::ok,
+                         pfd::icon::error);
             std::exit(1);
         }
         neuserver::startAsync();
     }
 }
 
-void __initFramework(const json &args) {
+void __initFramework(const json &args)
+{
     settings::setGlobalArgs(args);
     resources::init();
     json options = settings::getConfig();
 
-    if(options.is_null()) {
+    if (options.is_null())
+    {
         pfd::message("Unable to load app configuration",
-                        settings::getConfigFile() + " file is missing or corrupted.",
-                        pfd::choice::ok,
-                        pfd::icon::error);
+                     settings::getConfigFile() + " file is missing or corrupted.",
+                     pfd::choice::ok,
+                     pfd::icon::error);
         std::exit(1);
     }
 
-    if(options["applicationId"].is_null() || options["defaultMode"].is_null()
-        || settings::getOptionForCurrentMode("url").is_null()) {
+    if (options["applicationId"].is_null() || options["defaultMode"].is_null() || settings::getOptionForCurrentMode("url").is_null())
+    {
         pfd::message("Missing mandatory configuration",
-                        "Neutralinojs app config should contain applicationId, defaultMode, and url.",
-                        pfd::choice::ok,
-                        pfd::icon::error);
+                     "Neutralinojs app config should contain applicationId, defaultMode, and url.",
+                     pfd::choice::ok,
+                     pfd::icon::error);
         std::exit(1);
     }
 
@@ -150,28 +168,34 @@ void __initFramework(const json &args) {
     permission::init();
 }
 
-void __initExtra() {
+void __initExtra()
+{
     bool enableExtensions = false;
     bool exportAuthInfo = false;
     json exts = settings::getOptionForCurrentMode("enableExtensions");
-    if(!exts.is_null()) {
+    if (!exts.is_null())
+    {
         enableExtensions = exts.get<bool>();
     }
     json exportAuth = settings::getOptionForCurrentMode("exportAuthInfo");
-    if(!exportAuth.is_null()) {
+    if (!exportAuth.is_null())
+    {
         exportAuthInfo = exportAuth.get<bool>();
     }
 
-    if(exportAuthInfo) {
+    if (exportAuthInfo)
+    {
         authbasic::exportAuthInfo();
     }
-    if(enableExtensions) {
+    if (enableExtensions)
+    {
         extensions::init();
     }
 }
 
 bool checkProcessRunning()
 {
+    return false;
     HANDLE hMutexOneInstance(::CreateMutex(NULL, TRUE, L"{38227744-5458-4639-8D98-70E28F7E4D0C}"));
     bool bAlreadyRunning((::GetLastError() == ERROR_ALREADY_EXISTS));
 
@@ -193,21 +217,22 @@ bool checkProcessRunning()
 #define CONVSTR(S) helpers::wcstr2str(S)
 int APIENTRY wWinMain(HINSTANCE hInstance,
                       HINSTANCE hPrevInstance,
-                      LPTSTR    lpCmdLine,
-                      int       nCmdShow)
+                      LPTSTR lpCmdLine,
+                      int nCmdShow)
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 #define ARG_C argc
 #define ARG_V argv
 #define CONVSTR(S) S
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 #endif
-                                 {
-    
-     if (checkProcessRunning()) // Mutex to not run the .exe more than once
-         return -1;
-    
+{
+
+    if (checkProcessRunning()) // Mutex to not run the .exe more than once
+        return -1;
+
     json args;
-    for (int i = 0; i < ARG_C; i++) {
+    for (int i = 0; i < ARG_C; i++)
+    {
         args.push_back(CONVSTR(ARG_V[i]));
     }
     __initFramework(args);
