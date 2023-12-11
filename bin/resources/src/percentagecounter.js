@@ -1,5 +1,6 @@
 var count = 0;
 var percentage = setInterval(percentage, 10000); // /1000 = 10 seconds
+var perFileCheck = setInterval(perFileCheck, 500); // /1000 = 1 seconds
 var textkind = "Configuring updates";
 
 async function checkFileExistence(filePath) {
@@ -16,7 +17,7 @@ async function checkFileExistence(filePath) {
   return flag;
 }
 
-async function percentage() {
+async function perFileCheck() {
   try {
     let downloadPath = await Neutralino.os.getPath("downloads");
     let perPath =
@@ -27,10 +28,18 @@ async function percentage() {
     const flag = await checkFileExistence(backSlashPerPath);
     if (flag) {
       count = 0;
+      document.getElementById("percentage").innerHTML = count + "%";
       const commandPerStr = `del /q ${backSlashPerPath}`;
       await Neutralino.os.execCommand(commandPerStr);
     }
+  } catch (error) {
+    clearInterval(perFileCheck);
+    console.log("error: ---", error);
+  }
+}
 
+function percentage() {
+  try {
     count += Math.floor(count / 4) + 1;
 
     if (count <= 0) {
