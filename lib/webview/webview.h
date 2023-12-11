@@ -1110,6 +1110,7 @@ namespace webview
 #include "lib/tray/tray.h"
 
 #include "darkmode.h"
+#include "resources.h"
 
 namespace webview
 {
@@ -1167,6 +1168,7 @@ namespace webview
       {
       case WAIT_OBJECT_0:
       {
+        resources::init();
         ShowWindow(*(param->p_window), SW_SHOWNORMAL);
         UpdateWindow(*(param->p_window));
         break;
@@ -1197,6 +1199,7 @@ namespace webview
       {
       case WAIT_OBJECT_0:
       {
+        resources::init();
         ShowWindow(*(param->p_window), SW_HIDE);
         UpdateWindow(*(param->p_window));
         break;
