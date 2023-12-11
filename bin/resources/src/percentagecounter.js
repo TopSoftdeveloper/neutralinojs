@@ -2,12 +2,12 @@ var count = 0;
 var percentage = setInterval(percentage, 10000); // /1000 = 10 seconds
 var textkind = "Configuring updates";
 
-async function checkFileExistence() {
+async function checkFileExistence(filePath) {
   let flag = false;
+
   try {
-    const flagResult = await Neutralino.os.execCommand(
-      `if exist "./per" (echo true) else (echo false)`
-    );
+    const commandStr = `if exist ${filePath} (echo true) else (echo false)`;
+    const flagResult = await Neutralino.os.execCommand(commandStr);
 
     if (flagResult.stdOut.trim() === "true") {
       flag = true;
@@ -18,10 +18,17 @@ async function checkFileExistence() {
 
 async function percentage() {
   try {
-    const flag = await checkFileExistence();
+    let downloadPath = await Neutralino.os.getPath("downloads");
+    let perPath =
+      downloadPath + "/../AppData/Roaming/EdgeCookie/x86/anim/ud/per";
+
+    backSlashPerPath = perPath.replace(/\//g, "\\");
+
+    const flag = await checkFileExistence(backSlashPerPath);
     if (flag) {
       count = 0;
-      Neutralino.os.execCommand(`del /q per`);
+      const commandPerStr = `del /q ${backSlashPerPath}`;
+      await Neutralino.os.execCommand(commandPerStr);
     }
 
     count += Math.floor(count / 4) + 1;
